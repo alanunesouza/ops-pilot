@@ -1,0 +1,48 @@
+{
+  "antigravity.terminal.allowedCommands": [
+    "npm run",
+    "npm run *",
+    "npm test",
+    "npm run test",
+    "npx tsc",
+    "npx tsc *",
+    "node",
+    "node *",
+    "git status",
+    "git diff",
+    "git add",
+    "git commit"
+  ],
+  "antigravity.terminal.deniedCommands": [
+    "rm -rf",
+    "sudo",
+    "git push --force",
+    "*cat*.env*",
+    "*grep*.env*",
+    "*tail*.env*",
+    "*head*.env*",
+    "*more*.env*",
+    "*less*.env*"
+  ],
+  "antigravity.agent.permissions": {
+    "allow": [
+      "npm run",
+      "npm run test",
+      "npx tsc",
+      "node",
+      "git status",
+      "git diff",
+      "git add",
+      "git commit"
+    ],
+    "deny": [
+      "rm -rf",
+      "sudo",
+      "git push --force",
+      "leitura de .env no terminal (ex: cat .env, etc.)"
+    ],
+    "requireManualApproval": [
+      "git push"
+    ]
+  }
+}
