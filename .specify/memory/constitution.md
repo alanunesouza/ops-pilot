@@ -50,7 +50,7 @@ Prefira commits frequentes; evite acumular mudanças não commitadas.
 | Agente IA      | LangChain + LangGraph via OpenRouter                    |
 | Validação      | `zod` v4                                                |
 | API HTTP       | Express v5                                              |
-| Banco          | MySQL via Sequelize v6                                  |
+| Banco          | SQLite via `node:sqlite` (`DatabaseSync`)                |
 | Testes         | `node:test` nativo + `tsx` como loader                  |
 
 Sem desvios de stack sem spec aprovada. Novas dependências requerem justificativa explícita na spec correspondente.
@@ -78,4 +78,4 @@ Todo PR deve verificar conformidade com os princípios desta Constitution antes 
 Complexidade adicional deve ser justificada — YAGNI é a regra padrão.
 Para orientação de runtime e detalhes operacionais, consultar `.agents/skills/instructions/SKILL.md`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-09-02
+**Version**: 1.1.0 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-09-20

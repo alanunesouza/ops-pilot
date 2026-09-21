@@ -22,7 +22,7 @@ description: Diretrizes completas de arquitetura, stack técnica, convenções d
 | Modelo LLM     | OpenRouter via `@langchain/openai`                       |
 | Validação      | `zod` v4 em **toda** fronteira (HTTP, CLI, env, LLM out) |
 | API HTTP       | Express v5                                               |
-| Banco de Dados | MySQL via Sequelize v6                                   |
+| Banco de Dados | SQLite via `node:sqlite` (`DatabaseSync`)                |
 | Testes         | `node:test` nativo + `tsx` como loader                   |
 | Tipagem Dev    | TypeScript v7 + `@types/node` + `@types/express`         |
 

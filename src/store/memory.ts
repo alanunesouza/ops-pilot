@@ -2,110 +2,37 @@ import {
   Service,
   Alert,
   Incident,
+  Runbook,
   AlertFilterStatus,
+  IncidentFilter,
+  IncidentFilterStatus,
   Severity,
   ServiceSchema,
   AlertSchema,
   IncidentSchema,
+  RunbookSchema,
 } from "../schemas/entities.js";
+import type { OpsStore, SeedResult } from "./types.js";
+import { initialServices, initialAlerts, initialRunbooks } from "./sqlite-ops-store.js";
+import { IncidentNotFoundError } from "../utils/errors.js";
 
-export const initialServices: Service[] = [
-  {
-    id: "srv-auth",
-    name: "auth-service",
-    description: "Autenticação centralizada e gestão de sessões/JWT",
-    tier: "tier-1",
-  },
-  {
-    id: "srv-payment",
-    name: "payment-gateway",
-    description: "Gateway de pagamentos, cobrança e checkout",
-    tier: "tier-1",
-  },
-  {
-    id: "srv-order",
-    name: "order-api",
-    description: "Processamento de pedidos e ciclo de vendas",
-    tier: "tier-1",
-  },
-  {
-    id: "srv-inventory",
-    name: "inventory-service",
-    description: "Controle de estoque e disponibilidade de catálogo",
-    tier: "tier-2",
-  },
-  {
-    id: "srv-notification",
-    name: "notification-hub",
-    description: "Disparo assíncrono de e-mails, SMS e push notifications",
-    tier: "tier-3",
-  },
-];
+export { initialServices, initialAlerts, initialRunbooks };
 
-export const initialAlerts: Alert[] = [
-  {
-    id: "alt-001",
-    service: "payment-gateway",
-    title: "High error rate (5xx) in checkout transactions",
-    severity: "critical",
-    status: "firing",
-    timestamp: "2026-09-06T14:30:00.000Z",
-  },
-  {
-    id: "alt-002",
-    service: "order-api",
-    title: "Database connection pool exhaustion",
-    severity: "high",
-    status: "firing",
-    timestamp: "2026-09-06T14:45:00.000Z",
-  },
-  {
-    id: "alt-003",
-    service: "auth-service",
-    title: "Elevated p99 latency in token validation",
-    severity: "medium",
-    status: "firing",
-    timestamp: "2026-09-06T14:50:00.000Z",
-  },
-  {
-    id: "alt-004",
-    service: "notification-hub",
-    title: "Email dispatch queue lag above threshold",
-    severity: "low",
-    status: "resolved",
-    timestamp: "2026-09-06T13:00:00.000Z",
-  },
-  {
-    id: "alt-005",
-    service: "inventory-service",
-    title: "Memory spike during stock recalculation",
-    severity: "medium",
-    status: "resolved",
-    timestamp: "2026-09-06T13:15:00.000Z",
-  },
-  {
-    id: "alt-006",
-    service: "auth-service",
-    title: "Failed login attempt threshold exceeded",
-    severity: "high",
-    status: "resolved",
-    timestamp: "2026-09-06T13:30:00.000Z",
-  },
-];
-
-export class InMemoryStore {
+export class InMemoryStore implements OpsStore {
   private services: Map<string, Service> = new Map();
   private alerts: Map<string, Alert> = new Map();
   private incidents: Map<string, Incident> = new Map();
+  private runbooks: Map<string, Runbook> = new Map();
 
   constructor() {
     this.seed();
   }
 
-  public seed(): { servicesCount: number; alertsCount: number; firingCount: number; resolvedCount: number } {
+  public seed(): SeedResult {
     this.services.clear();
     this.alerts.clear();
     this.incidents.clear();
+    this.runbooks.clear();
 
     for (const s of initialServices) {
       const validated = ServiceSchema.parse(s);
@@ -117,6 +44,11 @@ export class InMemoryStore {
       this.alerts.set(validated.id, validated);
     }
 
+    for (const rb of initialRunbooks) {
+      const validated = RunbookSchema.parse(rb);
+      this.runbooks.set(validated.id, validated);
+    }
+
     const alertsList = Array.from(this.alerts.values());
     const firingCount = alertsList.filter((a) => a.status === "firing").length;
     const resolvedCount = alertsList.filter((a) => a.status === "resolved").length;
@@ -126,10 +58,12 @@ export class InMemoryStore {
       alertsCount: this.alerts.size,
       firingCount,
       resolvedCount,
+      runbooksCount: this.runbooks.size,
     };
   }
 
   public resetStore(): void {
+    this.incidents.clear();
     this.seed();
   }
 
@@ -158,31 +92,71 @@ export class InMemoryStore {
       severity,
       status: "open",
       createdAt: now,
+      created_at: now,
       updatedAt: now,
+      updated_at: now,
+      resolvedAt: null,
+      resolved_at: null,
+      summary: null,
     });
 
     this.incidents.set(incident.id, incident);
     return incident;
   }
 
-  public resolveIncident(id: string): Incident {
+  public resolveIncident(id: string, summary?: string): Incident {
     const existing = this.incidents.get(id);
     if (!existing) {
-      throw new Error(`Incident with id "${id}" not found.`);
+      throw new IncidentNotFoundError(id);
     }
 
+    const now = new Date().toISOString();
     const updated: Incident = IncidentSchema.parse({
       ...existing,
       status: "resolved",
-      updatedAt: new Date().toISOString(),
+      updatedAt: now,
+      updated_at: now,
+      resolvedAt: now,
+      resolved_at: now,
+      summary: summary ?? existing.summary ?? null,
     });
 
     this.incidents.set(id, updated);
     return updated;
   }
 
-  public listIncidents(): Incident[] {
-    return Array.from(this.incidents.values());
+  public listIncidents(filter?: IncidentFilter | IncidentFilterStatus | string): Incident[] {
+    const list = Array.from(this.incidents.values());
+    if (!filter || filter === "all") return list;
+    return list.filter((inc) => inc.status === filter);
+  }
+
+  public getIncidentById(id: string): Incident | undefined {
+    return this.incidents.get(id);
+  }
+
+  public getRunbookByService(service: string): Runbook | undefined {
+    const raw = service.trim().toLowerCase();
+    const stemmed = raw.replace(/s$/, "");
+    for (const rb of this.runbooks.values()) {
+      const s = rb.service.toLowerCase();
+      const t = rb.title.toLowerCase();
+      if (
+        s === raw ||
+        s === stemmed ||
+        s.includes(raw) ||
+        s.includes(stemmed) ||
+        raw.includes(s) ||
+        t.includes(raw)
+      ) {
+        return rb;
+      }
+    }
+    return undefined;
+  }
+
+  public listRunbooks(): Runbook[] {
+    return Array.from(this.runbooks.values());
   }
 }
 

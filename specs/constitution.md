@@ -33,7 +33,7 @@ OpsPilot é um copiloto inteligente de plantão (on-call) para gestão de alerta
 | Agente IA      | LangChain + LangGraph via OpenRouter                   |
 | Validação      | `zod` v4                                               |
 | API HTTP       | Express v5                                             |
-| Banco          | MySQL via Sequelize v6                                 |
+| Banco          | SQLite via `node:sqlite` (`DatabaseSync`)               |
 | Testes         | `node:test` nativo + `tsx` como loader                 |
 
 > Sem desvios de stack sem spec aprovada. Novas dependências requerem justificativa explícita na spec correspondente.

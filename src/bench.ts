@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { store } from "./store/memory.js";
+import { store, setOpsStore, memoryStore } from "./agents/ops-store.js";
 import { reactStrategy } from "./agents/react.js";
 import { planAndExecuteStrategy } from "./agents/plan-and-execute.js";
 import { ReasoningStrategy, StrategyResult } from "./agents/types.js";
@@ -130,7 +130,8 @@ export async function executeBenchmarkItem(
   strategy: ReasoningStrategy,
   options?: { noReplanner?: boolean }
 ): Promise<BenchResult> {
-  // Reset obrigatório do estado do store antes de cada execução
+  // Injeta memoryStore para garantir isolamento e reprodutibilidade do benchmark
+  setOpsStore(memoryStore);
   store.resetStore();
 
   const enableReplanner = !options?.noReplanner;

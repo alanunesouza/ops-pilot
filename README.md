@@ -24,33 +24,41 @@ Copiloto inteligente de plantão (on-call) para gestão, diagnóstico e mitigaç
                  └─────────────────────────┬─────────────────────────┘
                                            │
                                            ▼
-                               ┌────────────────────────┐
-                               │   Ferramentas (Tools)  │
-                               │   (src/agents/tools)   │
-                               │ list_alerts            │
-                               │ open_incident          │
-                               │ resolve_incident       │
-                               └───────────┬────────────┘
-                                           │
-                                           ▼
-                               ┌────────────────────────┐
-                               │    Store In-Memory     │
-                               │  (src/store/memory.ts) │
-                               │ 5 serviços | 6 alertas │
-                               └────────────────────────┘
+                                ┌────────────────────────┐
+                                │   Ferramentas (Tools)  │
+                                │   (src/agents/tools)   │
+                                │ list_alerts            │
+                                │ open_incident          │
+                                │ resolve_incident       │
+                                │ list_incidents         │
+                                │ consultar_runbook      │
+                                │ check_provider_status  │
+                                └───────────┬────────────┘
+                                            │
+                                            ▼
+                                ┌────────────────────────┐
+                                │     SqliteOpsStore     │
+                                │(node:sqlite / OPSPILOT)│
+                                │services, alerts,       │
+                                │incidents, runbooks     │
+                                └────────────────────────┘
 ```
 
-### Contrato Unificado (`ReasoningStrategy`)
-Todas as estratégias cognitivas implementam a mesma interface:
-- **Entrada**: `run(input: string, options?: StrategyOptions)`
-- **Saída**: `answer: string`, `trace: TraceEvent[]` (eventos tipados de `thought`, `action`, `observation`, `plan`, `critique`, `answer`) e `metrics: ExecutionMetrics` (`llmCalls`, `latencyMs`).
+### Ferramentas Operacionais (`opsTools`)
+Todas as ferramentas seguem as 6 regras semânticas (nome claro, "Use quando", "NÃO use", schemas Zod com `.describe()` e erros como observações textuais):
+- `list_alerts`: Consulta alertas de monitoramento (`firing`, `resolved`, `all`).
+- `open_incident`: Abre novo chamado formal de incidente com severidade (`low`, `medium`, `high`, `critical`).
+- `resolve_incident`: Encerra incidente com sumário de mitigação.
+- `list_incidents`: Lista incidentes abertos ou resolvidos.
+- `consultar_runbook`: Recupera procedimentos de remediação operacional por serviço.
+- `check_provider_status`: Consulta a statuspage pública oficial de provedores externos (`github`, `cloudflare`) via statuspage.io com timeout de 5s, retry automático em 5xx/rede e retorno amigável como observação.
 
 ---
 
 ## 🚀 Comandos Rápidos
 
-### 1. Inicializar Seed Primário
-Carrega 5 serviços de infraestrutura e 6 alertas simulados (3 `firing` e 3 `resolved`):
+### 1. Inicializar Seed Primário (SQLite)
+Carrega 5 serviços de infraestrutura, 6 alertas simulados (3 `firing` e 3 `resolved`) e 3 runbooks operacionais no SQLite (`./data/opspilot.db`):
 ```bash
 npm run seed
 ```
@@ -122,6 +130,28 @@ curl -X POST http://localhost:3000/chat \
 curl -X POST http://localhost:3000/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "Abra um incidente para o alerta mais antigo", "strategy": "plan-and-execute", "reflect": true}'
+```
+
+### 7. Executar o Servidor MCP (Model Context Protocol)
+Inicia o servidor MCP oficial do OpsPilot (`src/mcp/server.ts`) sobre o transporte `stdio`, expondo as ferramentas `list_alerts`, `open_incident` e `resolve_incident`:
+```bash
+npm run mcp
+```
+
+> **Nota**: `stdout` é reservado exclusivamente para o protocolo JSON-RPC. Todos os diagnósticos vão para `stderr`.
+
+#### Configuração para Claude Desktop / Cursor:
+Adicione ao seu `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "opspilot": {
+      "command": "npx",
+      "args": ["tsx", "--env-file=.env", "src/mcp/server.ts"],
+      "cwd": "/caminho/absoluto/para/ops-pilot"
+    }
+  }
+}
 ```
 
 

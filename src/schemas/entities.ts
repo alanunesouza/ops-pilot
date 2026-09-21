@@ -12,6 +12,10 @@ export type AlertFilterStatus = z.infer<typeof AlertFilterStatusSchema>;
 export const IncidentStatusSchema = z.enum(["open", "resolved"]);
 export type IncidentStatus = z.infer<typeof IncidentStatusSchema>;
 
+export const IncidentFilterStatusSchema = z.enum(["open", "resolved", "all"]);
+export type IncidentFilterStatus = z.infer<typeof IncidentFilterStatusSchema>;
+export type IncidentFilter = IncidentFilterStatus;
+
 export const ServiceSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -36,7 +40,24 @@ export const IncidentSchema = z.object({
   service: z.string().min(1),
   severity: SeveritySchema,
   status: IncidentStatusSchema,
-  createdAt: z.string().datetime().or(z.string()),
-  updatedAt: z.string().datetime().or(z.string()),
+  createdAt: z.string().datetime().or(z.string()).optional(),
+  created_at: z.string().optional(),
+  updatedAt: z.string().datetime().or(z.string()).optional(),
+  updated_at: z.string().optional(),
+  resolvedAt: z.string().nullable().optional(),
+  resolved_at: z.string().nullable().optional(),
+  summary: z.string().nullable().optional(),
 });
 export type Incident = z.infer<typeof IncidentSchema>;
+
+export const RunbookSchema = z.object({
+  id: z.string().min(1),
+  service: z.string().min(1),
+  title: z.string().min(1),
+  content: z.string().min(1),
+  createdAt: z.string().datetime().or(z.string()).optional(),
+  created_at: z.string().optional(),
+  updatedAt: z.string().datetime().or(z.string()).optional(),
+  updated_at: z.string().optional(),
+});
+export type Runbook = z.infer<typeof RunbookSchema>;

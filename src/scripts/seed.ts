@@ -1,14 +1,16 @@
-import { memoryStore } from "../store/memory.js";
+import { SqliteOpsStore } from "../store/sqlite-ops-store.js";
 
 export function runSeed(): void {
   console.log("==================================================");
-  console.log("🌱 OpsPilot: Inicializando Seed Primário");
+  console.log("🌱 OpsPilot: Inicializando Seed Primário (SQLite)");
   console.log("==================================================");
 
-  const stats = memoryStore.seed();
-  const services = memoryStore.listServices();
-  const firingAlerts = memoryStore.listAlerts("firing");
-  const resolvedAlerts = memoryStore.listAlerts("resolved");
+  const store = new SqliteOpsStore();
+  const stats = store.seed();
+  const services = store.listServices();
+  const firingAlerts = store.listAlerts("firing");
+  const resolvedAlerts = store.listAlerts("resolved");
+  const runbooks = store.listRunbooks();
 
   console.log(`\n📦 Serviços cadastrados (${stats.servicesCount}):`);
   for (const s of services) {
@@ -25,8 +27,13 @@ export function runSeed(): void {
     console.log(`  - [${a.severity.toUpperCase()}] ${a.id} | ${a.service} -> ${a.title}`);
   }
 
+  console.log(`\n📖 Runbooks operacionais cadastrados (${stats.runbooksCount}):`);
+  for (const rb of runbooks) {
+    console.log(`  - [${rb.service}] ${rb.title}`);
+  }
+
   console.log("\n==================================================");
-  console.log("✨ Seed executado com sucesso e validado via Zod!");
+  console.log("✨ Seed executado com sucesso no SQLite!");
   console.log("==================================================");
 }
 

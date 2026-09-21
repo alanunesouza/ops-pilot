@@ -1,11 +1,12 @@
 import { test, describe, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { SCENARIOS, executeBenchmarkItem, ScenarioDefinition } from "./bench.js";
-import { store } from "./store/memory.js";
+import { store, setOpsStore, memoryStore } from "./agents/ops-store.js";
 import { ReasoningStrategy, StrategyResult } from "./agents/types.js";
 
 describe("Benchmark Scenarios & Store Verifiers", () => {
   beforeEach(() => {
+    setOpsStore(memoryStore);
     store.resetStore();
   });
 
