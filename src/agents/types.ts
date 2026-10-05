@@ -14,9 +14,22 @@ export interface TraceEvent {
   timestamp?: string;
 }
 
+import type { ConversationMessage } from "../store/types.js";
+import type { Memory } from "../memory/types.js";
+
+export type StrategyInput =
+  | string
+  | {
+      message: string;
+      history?: ConversationMessage[];
+      memories?: Memory[];
+    };
+
 export interface ExecutionMetrics {
   llmCalls: number;
   latencyMs: number;
+  historyMessages?: number;
+  memoriesRecalled?: number;
 }
 
 export interface StrategyOptions {
@@ -45,6 +58,6 @@ export interface ReflectionOptions {
 
 export interface ReasoningStrategy {
   readonly name: string;
-  run(input: string, options?: StrategyOptions): Promise<StrategyResult>;
+  run(input: StrategyInput, options?: StrategyOptions): Promise<StrategyResult>;
 }
 

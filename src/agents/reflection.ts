@@ -1,5 +1,6 @@
 import {
   ReasoningStrategy,
+  StrategyInput,
   StrategyOptions,
   StrategyResult,
   ReasoningResult,
@@ -126,11 +127,11 @@ export function withReflection(
 
   return {
     name: `reflect:${strategy.name}`,
-    async run(input: string, strategyOptions?: StrategyOptions): Promise<StrategyResult> {
+    async run(input: StrategyInput, strategyOptions?: StrategyOptions): Promise<StrategyResult> {
       const started = Date.now();
       const consolidatedTrace: TraceEvent[] = [];
       let totalLlmCalls = 0;
-      let currentInput = input;
+      let currentInput: StrategyInput = input;
       let lastResult: StrategyResult | undefined;
       let round = 1;
 
@@ -144,7 +145,8 @@ export function withReflection(
           consolidatedTrace.push(...result.trace);
 
           // Submete o resultado da rodada ao crítico
-          const verdict = await critique(input, result, options);
+          const inputString = typeof input === "string" ? input : input.message;
+          const verdict = await critique(inputString, result, options);
           totalLlmCalls += 1;
 
           // Registra o evento de crítica no trace
@@ -169,7 +171,7 @@ export function withReflection(
 
           // Se reprovado e ainda restam iterações: prepara a injeção do feedback no contexto da próxima tentativa
           const previousObservations = observationsOf(result.trace);
-          currentInput = `Pedido original do operador: ${input}\n\nObservações factuais obtidas na tentativa anterior:\n${previousObservations}\n\nFeedback corretivo do crítico:\n${verdict.feedback}\n\nPor favor, execute as correções apontadas e responda ao pedido original com base nas observações factuais.`;
+          currentInput = `Pedido original do operador: ${inputString}\n\nObservações factuais obtidas na tentativa anterior:\n${previousObservations}\n\nFeedback corretivo do crítico:\n${verdict.feedback}\n\nPor favor, execute as correções apontadas e responda ao pedido original com base nas observações factuais.`;
           round++;
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);

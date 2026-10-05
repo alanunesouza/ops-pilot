@@ -4,6 +4,8 @@ export const ChatRequestSchema = z.object({
   message: z.string().trim().min(1, "O campo 'message' não pode ser vazio"),
   strategy: z.string().trim().default("react"),
   reflect: z.boolean().default(false),
+  conversationId: z.string().trim().min(1).optional(),
+  userId: z.string().trim().min(1).optional(),
 });
 
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
@@ -19,9 +21,12 @@ export const TraceEventSchema = z.object({
 export const ExecutionMetricsSchema = z.object({
   llmCalls: z.number().int().nonnegative(),
   latencyMs: z.number().int().nonnegative(),
+  historyMessages: z.number().int().nonnegative().default(0),
+  memoriesRecalled: z.number().int().nonnegative().default(0),
 });
 
 export const ChatResponseSchema = z.object({
+  conversationId: z.string().min(1),
   answer: z.string(),
   trace: z.array(TraceEventSchema),
   metrics: ExecutionMetricsSchema,

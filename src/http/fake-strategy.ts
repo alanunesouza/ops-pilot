@@ -1,5 +1,6 @@
 import {
   ReasoningStrategy,
+  StrategyInput,
   StrategyOptions,
   StrategyResult,
   TraceEvent,
@@ -20,6 +21,7 @@ export interface FakeStrategyOptions {
  */
 export class FakeReasoningStrategy implements ReasoningStrategy {
   public readonly name: string;
+  public lastInput?: StrategyInput;
   private answer: string;
   private trace: TraceEvent[];
   private llmCalls: number;
@@ -54,7 +56,8 @@ export class FakeReasoningStrategy implements ReasoningStrategy {
     this.errorMessage = options?.errorMessage || "Erro simulado na estratégia fake.";
   }
 
-  async run(input: string, _options?: StrategyOptions): Promise<StrategyResult> {
+  async run(input: StrategyInput, _options?: StrategyOptions): Promise<StrategyResult> {
+    this.lastInput = input;
     const started = Date.now();
 
     if (this.delayMs > 0) {

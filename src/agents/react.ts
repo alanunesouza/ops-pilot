@@ -1,13 +1,18 @@
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
-import { ReasoningStrategy, StrategyOptions, StrategyResult } from "./types.js";
+import { ReasoningStrategy, StrategyInput, StrategyOptions, StrategyResult } from "./types.js";
 import { createModel } from "./model.js";
 import { opsTools } from "./tools.js";
 import { toTrace, lastText, countAiMessages } from "./trace.js";
+import { composePromptWithHistory } from "../http/prompt-composer.js";
 
 export const reactStrategy: ReasoningStrategy = {
   name: "react",
-  async run(input: string, options?: StrategyOptions): Promise<StrategyResult> {
+  async run(input: StrategyInput, options?: StrategyOptions): Promise<StrategyResult> {
     const started = Date.now();
+    const prompt =
+      typeof input === "string"
+        ? input
+        : composePromptWithHistory(input.message, input.history, input.memories);
 
     try {
       const agent = createReactAgent({
@@ -18,7 +23,7 @@ export const reactStrategy: ReasoningStrategy = {
       const recursionLimit = options?.maxIterations ?? 12;
 
       const result = await agent.invoke(
-        { messages: [{ role: "user", content: input }] },
+        { messages: [{ role: "user", content: prompt }] },
         { recursionLimit }
       );
 

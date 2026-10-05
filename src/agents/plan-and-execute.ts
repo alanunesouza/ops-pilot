@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { StateGraph, Annotation, END, START } from "@langchain/langgraph";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
-import { ReasoningStrategy, StrategyOptions, StrategyResult, TraceEvent } from "./types.js";
+import { ReasoningStrategy, StrategyInput, StrategyOptions, StrategyResult, TraceEvent } from "./types.js";
 import { createModel } from "./model.js";
 import { opsTools } from "./tools.js";
 import { toTrace, lastText, countAiMessages } from "./trace.js";
+import { composePromptWithHistory } from "../http/prompt-composer.js";
 
 export const PlanSchema = z.object({
   steps: z
@@ -313,15 +314,19 @@ Com base no progresso atual, decida se o objetivo foi concluído ('finish') forn
 
 export const planAndExecuteStrategy: ReasoningStrategy = {
   name: "plan-and-execute",
-  async run(input: string, options?: StrategyOptions): Promise<StrategyResult> {
+  async run(input: StrategyInput, options?: StrategyOptions): Promise<StrategyResult> {
     const started = Date.now();
+    const prompt =
+      typeof input === "string"
+        ? input
+        : composePromptWithHistory(input.message, input.history, input.memories);
     const maxIterations = Math.min(options?.maxIterations ?? MAX_STEPS_LIMIT, MAX_STEPS_LIMIT);
     const enableReplanner = options?.enableReplanner !== false;
 
     try {
       const app = createPlanAndExecuteGraph(enableReplanner);
       const finalState = await app.invoke({
-        input,
+        input: prompt,
         plan: [],
         pastSteps: [],
         iterations: 0,

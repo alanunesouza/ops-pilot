@@ -221,8 +221,36 @@ describe("Operational Tools Execution com SQLite (:memory:)", () => {
     assert.match(result, /avise o plantonista da limitação/);
   });
 
-  test("todas as 6 tools seguem as 6 regras com descrições semânticas e esquemas Zod", () => {
-    assert.equal(opsTools.length, 6);
+  test("forget_preference localiza memória via recall e remove com sucesso", async () => {
+    const { SqliteMemoryStore } = await import("../memory/memory-store.js");
+    const { createForgetPreferenceTool } = await import("./tools.js");
+
+    const memStore = new SqliteMemoryStore(":memory:");
+    await memStore.remember("usr-123", "O operador prefere chavear tráfego para rota de contingência.");
+
+    assert.equal(memStore._all("usr-123").length, 1);
+
+    const tool = createForgetPreferenceTool(memStore, () => "usr-123");
+    const output = await tool.invoke({ preference: "chavear tráfego para contingência" });
+
+    assert.match(output, /removida com sucesso/);
+    assert.match(output, /rota de contingência/);
+    assert.equal(memStore._all("usr-123").length, 0);
+  });
+
+  test("forget_preference retorna mensagem amigável quando nenhuma memória corresponde", async () => {
+    const { SqliteMemoryStore } = await import("../memory/memory-store.js");
+    const { createForgetPreferenceTool } = await import("./tools.js");
+
+    const memStore = new SqliteMemoryStore(":memory:");
+    const tool = createForgetPreferenceTool(memStore, () => "usr-123");
+    const output = await tool.invoke({ preference: "preferência inexistente" });
+
+    assert.match(output, /Nenhuma preferência correspondente/);
+  });
+
+  test("todas as 7 tools seguem as 6 regras com descrições semânticas e esquemas Zod", () => {
+    assert.equal(opsTools.length, 7);
 
     for (const t of opsTools) {
       assert.ok(t.description.length > 30, `Tool ${t.name} deve ter descrição detalhada`);

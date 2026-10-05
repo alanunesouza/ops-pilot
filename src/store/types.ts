@@ -30,3 +30,17 @@ export interface OpsStore {
   getRunbookByService(service: string): Runbook | undefined;
   listRunbooks?(): Runbook[];
 }
+
+export type { ConversationMessage, MessageRole } from "../schemas/conversation.js";
+import type { ConversationMessage, MessageRole } from "../schemas/conversation.js";
+
+export interface ConversationStore {
+  create(): string;
+  append(
+    conversationId: string,
+    role: MessageRole,
+    content: string
+  ): ConversationMessage;
+  lastMessages(conversationId: string, limit?: number): ConversationMessage[];
+}
+

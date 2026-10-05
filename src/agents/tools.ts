@@ -95,6 +95,8 @@ export const consultarRunbook = tool(
   }
 );
 
+import { getMemoryStore, MemoryStore } from "../memory/index.js";
+
 export function createCheckProviderStatusTool(doFetch: typeof fetch = fetch) {
   return tool(
     async ({ provider }) => {
@@ -115,6 +117,46 @@ export function createCheckProviderStatusTool(doFetch: typeof fetch = fetch) {
 
 export const checkProviderStatus = createCheckProviderStatusTool();
 
+export function createForgetPreferenceTool(
+  customMemoryStore?: MemoryStore,
+  getUserId?: () => string | undefined
+) {
+  return tool(
+    async ({ preference, userId }) => {
+      const activeUserId = userId ?? getUserId?.() ?? "default-user";
+      const store = customMemoryStore ?? getMemoryStore();
+
+      const memories = await store.recall(activeUserId, preference, 1);
+      if (!memories || memories.length === 0) {
+        return `Nenhuma preferência correspondente a "${preference}" foi encontrada para exclusão.`;
+      }
+
+      const target = memories[0];
+      await store.forget(activeUserId, target.id);
+      return `A preferência "${target.fact}" foi removida com sucesso da sua memória.`;
+    },
+    {
+      name: "forget_preference",
+      description:
+        "Remove ou revoga uma preferência ou fato durável previamente aprendido sobre o operador. Use quando o operador solicitar explicitamente para esquecer, desconsiderar ou remover uma preferência, procedimento favorito ou regra de trabalho que havia sido ensinada anteriormente. NÃO use para registrar novas preferências (o sistema aprende automaticamente), para resolver incidentes (use 'resolve_incident') nem para apagar alertas do sistema.",
+      schema: z.object({
+        preference: z
+          .string()
+          .trim()
+          .min(1)
+          .describe("Descrição em linguagem natural ou palavra-chave da preferência que o operador deseja esquecer."),
+        userId: z
+          .string()
+          .trim()
+          .optional()
+          .describe("Identificador do operador (opcional, padrão do contexto atual)."),
+      }),
+    }
+  );
+}
+
+export const forgetPreference = createForgetPreferenceTool();
+
 export const opsTools = [
   listAlerts,
   openIncident,
@@ -122,4 +164,6 @@ export const opsTools = [
   listIncidents,
   consultarRunbook,
   checkProviderStatus,
+  forgetPreference,
 ];
+
